@@ -1,22 +1,29 @@
-from django.db import models
-from django.contrib.auth.models import User
+ from django.db import models
+from django.utils.timezone import now
+import sys
 
+# Assume Course, Lesson, Instructor, Learner, and Enrollment models are defined above
 
 class Question(models.Model):
-    question_text = models.CharField(max_length=255)
-    marks = models.IntegerField(default=1)
+    # Foreign key relationship to Course
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    question_text = models.CharField(max_length=200)
+    grade = models.IntegerField(default=1)
+
+    def is_get_score(self, selected_ids):
+        all_answers = self.choice_set.filter(is_correct=True).count()
+        selected_correct = self.choice_set.filter(is_correct=True, id__in=selected_ids).count()
+        if all_answers == selected_correct and len(selected_ids) == all_answers:
+            return True
+        return False
 
     def __str__(self):
         return self.question_text
 
 
 class Choice(models.Model):
-    question = models.ForeignKey(
-        Question,
-        on_delete=models.CASCADE,
-        related_name="choices"
-    )
-    choice_text = models.CharField(max_length=255)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    choice_text = models.CharField(max_length=200)
     is_correct = models.BooleanField(default=False)
 
     def __str__(self):
@@ -24,10 +31,8 @@ class Choice(models.Model):
 
 
 class Submission(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    selected_choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
-    submitted_at = models.DateTimeField(auto_now_add=True)
+    enrollment = models.ForeignKey('Enrollment', on_delete=models.CASCADE)
+    choices = models.ManyToManyField(Choice)
 
     def __str__(self):
-        return str(self.student)
+        return f"Submission {self.id} for {self.enrollment}"
